@@ -12,6 +12,12 @@ For OkHttp callers, `cdpai.curlimpersonate.okhttp.CurlInterceptor` sends each re
 var client = new OkHttpClient.Builder().addInterceptor(CurlInterceptor.chrome152()).build();
 ```
 
-The native library is found from `-Dcurlimpersonate.dll=<path>`, then the `CURLIMPERSONATE_DLL` environment variable, then the system library path. `Http.problem()` returns why it cannot load (or null), so a caller can fall back to a plain client.
+Where the native library comes from is a `LibrarySource`. The default, `LibrarySource.gitHubRelease()`, downloads the official libcurl-impersonate release for this platform from github.com/lexiforest/curl-impersonate (pinned to v2.3.0, SHA-256 checked) into `~/cdpai/curlimpersonate/<version>/<platform>/` on first use and loads it from there afterwards. Other sources: `LibrarySource.path(file)`, `environmentVariable(name)`, `systemLibraryPath()`, `gitHubRelease(version)` (checked against the digest GitHub publishes), or your own implementation. Choose one before the first request:
+
+```java
+NativeLibrary.use(LibrarySource.path(Path.of("/opt/curl-impersonate/libcurl-impersonate.so")));
+```
+
+`-Dcurlimpersonate.dll=<path>` is a shortcut for `LibrarySource.path`. `Http.problem()` returns why the library cannot load (or null), so a caller can fall back to a plain client.
 
 Tests: `mvn test` (local server); `mvn test -Dcurlimpersonate.live=true` also checks the fingerprint against tls.peet.ws.

@@ -4,9 +4,8 @@ import module java.base;
 import static java.lang.foreign.ValueLayout.*;
 
 final class Lib {
-    static final String PROPERTY = "curlimpersonate.dll", ENV = "CURLIMPERSONATE_DLL";
     static final Linker L = Linker.nativeLinker();
-    static final SymbolLookup LOOKUP = lookup();
+    static final SymbolLookup LOOKUP = NativeLibrary.open(Arena.global());
     static final MethodHandle
         GLOBAL_INIT = fn("curl_global_init", FunctionDescriptor.of(JAVA_INT, JAVA_INT)),
         INIT = fn("curl_easy_init", FunctionDescriptor.of(ADDRESS)),
@@ -24,15 +23,6 @@ final class Lib {
     static {
         try { var rc = (int) GLOBAL_INIT.invokeExact(3); if (rc != 0) throw new IllegalStateException("curl_global_init " + rc); }
         catch (Throwable t) { throw new ExceptionInInitializerError(t); }
-    }
-
-    static SymbolLookup lookup() {
-        var path = System.getProperty(PROPERTY, System.getenv(ENV));
-        if (path != null && !path.isBlank()) return SymbolLookup.libraryLookup(Path.of(path), Arena.global());
-        var os = System.getProperty("os.name").toLowerCase();
-        var name = os.contains("win") ? "libcurl-impersonate.dll" : os.contains("mac") ? "libcurl-impersonate.dylib" : "libcurl-impersonate.so";
-        try { return SymbolLookup.libraryLookup(name, Arena.global()); }
-        catch (IllegalArgumentException e) { throw new IllegalStateException(name + " not found: set -D" + PROPERTY + " or " + ENV + " to its path", e); }
     }
 
     static MethodHandle fn(String name, FunctionDescriptor d) {
